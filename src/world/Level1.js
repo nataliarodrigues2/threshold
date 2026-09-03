@@ -69,6 +69,7 @@ class Generator extends Interactable {
         this.events.notify('GERADOR ATIVADO');
         this.events.sfx('power');
         this.gameState.completeObjective('generator');
+        this.gameState.addScore('generator', CONFIG.scoring.generator ?? 0);
     }
 
     update(delta, time) {

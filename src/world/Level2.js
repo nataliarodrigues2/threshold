@@ -71,6 +71,7 @@ class Stabilizer extends Interactable {
         this.events.notify('DISPOSITIVO ESTABILIZADO');
         this.events.sfx('power');
         this.gameState.completeObjective('stabilize');
+        this.gameState.addScore('stabilize', CONFIG.scoring.stabilize ?? 0);
         this.onStabilized();
     }
 

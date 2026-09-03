@@ -150,6 +150,15 @@ body {
     font-size: 0.95rem;
 }
 
+.objective-text {
+    max-width: 26rem;
+    margin: 0.6rem 0 1.4rem;
+    line-height: 1.6;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: left;
+}
+
 #player-name-input {
     font-family: inherit;
     font-size: 1.1rem;

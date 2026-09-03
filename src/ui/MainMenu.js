@@ -2,15 +2,13 @@ export class MainMenu {
     constructor(callbacks) {
         this.root = document.getElementById('main-menu');
         this.nameModal = document.getElementById('name-modal');
-        this.difficultyModal = document.getElementById('difficulty-modal');
         this.instructionsModal = document.getElementById('instructions-modal');
         this.nameInput = document.getElementById('player-name-input');
         this.callbacks = callbacks;
-        this.selectedDifficulty = 'normal';
 
         document.getElementById('btn-start')?.addEventListener('click', () => {
             callbacks.onUiClick();
-            this.showModal(this.difficultyModal);
+            this.showModal(this.nameModal);
         });
 
         document.getElementById('btn-instructions')?.addEventListener('click', () => {
@@ -23,15 +21,6 @@ export class MainMenu {
             this.hideModal(this.instructionsModal);
         });
 
-        document.querySelectorAll('.diff-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                callbacks.onUiClick();
-                this.selectDifficulty(btn.dataset.diff);
-                this.showModal(this.nameModal);
-                this.hideModal(this.difficultyModal);
-            });
-        });
-
         document.getElementById('btn-enter-game')?.addEventListener('click', () => {
             const name = this.nameInput.value.trim();
             if (!name) {
@@ -40,20 +29,13 @@ export class MainMenu {
                 return;
             }
             callbacks.onUiClick();
-            callbacks.onStart(name, this.selectedDifficulty);
+            callbacks.onStart(name);
         });
 
         this.nameInput?.addEventListener('keydown', (e) => {
             if (e.code === 'Enter') {
                 document.getElementById('btn-enter-game').click();
             }
-        });
-    }
-
-    selectDifficulty(diff) {
-        this.selectedDifficulty = diff;
-        document.querySelectorAll('.diff-btn').forEach(btn => {
-            btn.classList.toggle('selected', btn.dataset.diff === diff);
         });
     }
 
@@ -68,7 +50,6 @@ export class MainMenu {
     hide() {
         this.root.classList.add('hidden');
         this.hideModal(this.nameModal);
-        this.hideModal(this.difficultyModal);
         this.hideModal(this.instructionsModal);
     }
 

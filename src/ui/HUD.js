@@ -137,9 +137,11 @@ export class HUD {
 
     setDifficulty(difficulty) {
         this.difficulty = difficulty;
-        if (difficulty === 'easy') {
-            this.radarEnabled = true;
-        }
+        // Precisa resetar explicitamente pros dois lados: antes a dificuldade
+        // nunca mudava no meio do jogo, então isso nunca "vazava" de um nível
+        // fácil pro próximo. Agora que muda por andar, sem isso o minimapa
+        // ficaria preso ligado depois do CHÃO 0.
+        this.radarEnabled = difficulty === 'easy';
         this.updateVisibility();
         this.renderLegend();
     }

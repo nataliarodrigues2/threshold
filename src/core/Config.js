@@ -87,9 +87,9 @@ export const CONFIG = {
         disableMipmaps: true,
         flatShading: true,
         vertexSnapping: true,
-        vertexSnapStrength: 0.7,
+        vertexSnapStrength: 0.35,
         affineMapping: true,
-        affineStrength: 0.55,
+        affineStrength: 0.3,
         dithering: true,
         ditherStrength: 0.4,
         colorQuantization: true,
@@ -172,7 +172,16 @@ export const CONFIG = {
 
     levels: {
         count: 3,
-        // Índice do padrão de dificuldade usado como chave (0=easy,1=normal,2=hard)
-        names: ['CHÃO 0', 'CHÃO 1', 'CHÃO 2']
+        // Dificuldade automática por andar (índice = nível): 0=fácil, 1=médio, 2=difícil.
+        // Não é mais escolhida no menu — a progressão em si já é a dificuldade.
+        difficultyByLevel: ['easy', 'normal', 'hard'],
+        names: ['CHÃO 0', 'CHÃO 1', 'CHÃO 2'],
+        // Texto mostrado na transição ao ENTRAR em cada andar (índice 0
+        // nunca é mostrado — o jogo já começa nele, sem tela de transição).
+        subtitles: [
+            '',
+            'ISSO NÃO É SÓ ABANDONO.',
+            'A ÚLTIMA PORTA.'
+        ]
     }
 };

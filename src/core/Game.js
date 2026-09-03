@@ -8,7 +8,7 @@ import { AudioManifest } from '../audio/AudioManifest.js';
 import { NotificationSystem } from '../systems/NotificationSystem.js';
 import { ObjectiveManager } from '../systems/ObjectiveManager.js';
 import { ScoreManager } from '../systems/ScoreManager.js';
-import { LocalGameRepository } from '../systems/GameRepository.js';
+import { ApiGameRepository } from '../systems/GameRepository.js';
 import { InteractionSystem } from '../interactions/InteractionSystem.js';
 import { LevelManager } from '../world/LevelManager.js';
 import { EntityManager } from '../entities/EntityManager.js';
@@ -52,7 +52,7 @@ export class Game {
         this.gameState = new GameState();
         this.input = new InputManager();
         this.audio = new AudioManager();
-        this.repository = new LocalGameRepository();
+        this.repository = new ApiGameRepository();
         this.difficulty = null;
         this.diffConfig = null;
         this.levelIndex = 0;
@@ -391,14 +391,11 @@ export class Game {
         };
     }
 
-    start(playerName, difficulty = 'normal') {
-        this.difficulty = difficulty;
-        this.diffConfig = CONFIG.difficulty[difficulty];
+    start(playerName) {
         this.gameState.setPlayerName(playerName);
         this.gameState.setState('PLAYING');
         this._lastPlayStart = performance.now();
         this.mainMenu.hide();
-        this.hud.setDifficulty(difficulty);
         this.hud.show();
         // VR: menu DOM não aparece no headset, libera botão VR agora
         this.vrButton.style.display = '';
@@ -411,11 +408,23 @@ export class Game {
             const p = this.player.getPosition();
             this.xrRig.position.set(p.x, 0, p.z);
         }
+
+        // Abertura narrativa — objetivo claro logo de cara, independente
+        // da dificuldade (que agora vem sozinha, por andar).
+        this.notificationSystem.show(
+            'Você escorregou da realidade. Não devia estar aqui. Encontre o caminho de volta.',
+            { duration: 6000 }
+        );
     }
 
     loadLevel(index = this.gameState.currentLevelIndex) {
         this.levelIndex = index;
         this.gameState.currentLevelIndex = index;
+
+        // Dificuldade automática por andar — não é mais escolha do menu.
+        this.difficulty = CONFIG.levels.difficultyByLevel[index] ?? 'normal';
+        this.diffConfig = CONFIG.difficulty[this.difficulty];
+        this.hud.setDifficulty(this.difficulty);
 
         this.level = this.levelManager.load(index, {
             gameState: this.gameState,
@@ -638,13 +647,14 @@ export class Game {
         this.input.clearActions();
         document.exitPointerLock();
         const nextName = CONFIG.levels.names[this.gameState.currentLevelIndex] ?? 'NÍVEL ?';
+        const nextSubtitle = CONFIG.levels.subtitles?.[this.gameState.currentLevelIndex] ?? '';
         try { this.audio.stopAll(); } catch {}
         this.ui.fadeIn(700).then(async () => {
             this.unloadLevel();
             this.loadLevel();
             try { this.audio.setReverbForLevel(this.levelIndex); this.audio.startAmbient(this.diffConfig.flickerIntensity > 1 ? 1.3 : 1.0, this.levelIndex); } catch {}
             this.ui.fadeOut(500);
-            await this.endScreen.showLevelIntro({ title: nextName }, 2000);
+            await this.endScreen.showLevelIntro({ title: nextName, subtitle: nextSubtitle }, 2200);
             this.transitioning = false;
             if (!this.renderer.xr.isPresenting) this.requestPointerLock();
             this.updateItemUiFromState();
@@ -730,7 +740,10 @@ export class Game {
         await this.ui.fadeIn(900);
         this.hud.hide();
         this.ui.fadeOut(500);
-        await this.endScreen.showLevelIntro(2200);
+        await this.endScreen.showLevelIntro(
+            { title: 'VOCÊ ACORDA', subtitle: 'DE VOLTA À REALIDADE. QUANTO TEMPO REALMENTE SE PASSOU?' },
+            3200
+        );
         this.endScreen.show({
             playerName: this.gameState.playerName,
             score: this.gameState.score,
@@ -742,7 +755,9 @@ export class Game {
             playerName: this.gameState.playerName,
             score: this.gameState.score,
             duration: Math.round(this.gameState.elapsedSeconds),
-            completedAt: new Date().toISOString()
+            completedAt: new Date().toISOString(),
+            levelName: CONFIG.levels.names[this.gameState.currentLevelIndex] ?? 'CHÃO 0',
+            completed: true
         });
     }
 
