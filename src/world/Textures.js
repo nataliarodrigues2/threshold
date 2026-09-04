@@ -203,3 +203,60 @@ export function createCrateTexture(repeatX = 1, repeatY = 1) {
 
     return finalize(canvas, repeatX, repeatY);
 }
+
+// ---------------------------------------------------------------
+// Quarto "mundo real" — papel de parede losangular e madeira escura
+// de móvel, no mesmo estilo baixo-poligono/retro do resto do jogo.
+// ---------------------------------------------------------------
+export function createWallpaperTexture(repeatX = 1, repeatY = 1) {
+    const size = defaultSize();
+    const canvas = createCanvas(size);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    ctx.fillStyle = '#d9cfae';
+    ctx.fillRect(0, 0, size, size);
+
+    // Losangos em grade diagonal (baixa resolução, sem anti-alias fino)
+    ctx.strokeStyle = 'rgba(150,132,92,0.55)';
+    ctx.lineWidth = Math.max(1, Math.round(size / 64));
+    const cell = Math.max(4, Math.round(size / 10));
+    for (let y = -size; y < size * 2; y += cell) {
+        ctx.beginPath();
+        ctx.moveTo(-size, y);
+        ctx.lineTo(size * 2, y - size * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-size, y);
+        ctx.lineTo(size * 2, y + size * 2);
+        ctx.stroke();
+    }
+
+    addBlockNoise(ctx, size, 14, 255, 3);
+    quantizeCanvas(ctx, size, 4);
+
+    return finalize(canvas, repeatX, repeatY);
+}
+
+export function createDarkWoodTexture(repeatX = 1, repeatY = 1) {
+    const size = defaultSize();
+    const canvas = createCanvas(size);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    ctx.fillStyle = '#3a2a1c';
+    ctx.fillRect(0, 0, size, size);
+
+    // Veios verticais de madeira escura (móvel/porta)
+    ctx.fillStyle = 'rgba(20,14,9,0.4)';
+    const stripW = Math.max(2, Math.round(size / 14));
+    for (let x = 0; x < size; x += stripW * 2) {
+        ctx.fillRect(x, 0, stripW, size);
+    }
+    ctx.fillStyle = 'rgba(90,64,40,0.25)';
+    ctx.fillRect(0, 0, size, Math.max(1, Math.round(size / 40)));
+
+    addBlockNoise(ctx, size, 18, 255, 3);
+    quantizeCanvas(ctx, size, 4);
+
+    return finalize(canvas, repeatX, repeatY);
+}
+

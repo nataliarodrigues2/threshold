@@ -11,6 +11,7 @@ import { ScoreManager } from '../systems/ScoreManager.js';
 import { ApiGameRepository } from '../systems/GameRepository.js';
 import { InteractionSystem } from '../interactions/InteractionSystem.js';
 import { LevelManager } from '../world/LevelManager.js';
+import { RealRoom } from '../world/RealRoom.js';
 import { EntityManager } from '../entities/EntityManager.js';
 import { Flashlight } from '../player/Flashlight.js';
 import { Player } from '../player/Player.js';
@@ -178,6 +179,71 @@ export class Game {
             this.handlePickup('phone');
             this.handlePickup('radar');
             this.notificationSystem.show('DEBUG: CELULAR + RADAR ADICIONADOS');
+        });
+        this.input.onKeyPress('F6', () => {
+            // DEBUG: troca pro quarto "mundo real" em construção, sem
+            // passar pelo fluxo normal de nível (só pra ver o cenário).
+            if (this.level?.group) this.scene.remove(this.level.group);
+            this.level = new RealRoom(this.scene);
+            this.interactionSystem.interactables = [];
+            this.interactionSystem.currentTarget = null;
+            this.hud.setPrompt(null);
+            if (this.entityManager) { this.entityManager.dispose(); this.entityManager = null; }
+            this.player.movement.collisionWorld = this.level;
+            this._wakeCameraTest = false;
+            this.player.spawnAt(this.level.spawnPoint.x, this.level.spawnPoint.z);
+            this.notificationSystem.show('DEBUG: QUARTO REAL (cenário em teste)');
+        });
+        this.input.onKeyPress('F7', () => {
+            // DEBUG: ETAPA 2 — pose da câmera de despertar (deitado no
+            // travesseiro). Garante que estamos no quarto primeiro, se
+            // ainda não estiver. Alterna entre a pose fixa e o controle
+            // normal de andar pela sala.
+            if (!(this.level instanceof RealRoom)) {
+                if (this.level?.group) this.scene.remove(this.level.group);
+                this.level = new RealRoom(this.scene);
+                this.interactionSystem.interactables = [];
+                this.interactionSystem.currentTarget = null;
+                this.hud.setPrompt(null);
+                if (this.entityManager) { this.entityManager.dispose(); this.entityManager = null; }
+                this.player.movement.collisionWorld = this.level;
+            }
+            this._wakeCameraTest = !this._wakeCameraTest;
+            const pose = this.level.getWakeCameraPose();
+            const inXR = this.renderer.xr.isPresenting;
+
+            if (this._wakeCameraTest) {
+                if (inXR) {
+                    // VR: a rotação sempre vem do sensor do headset — só
+                    // dá pra posicionar a ORIGEM (xrRig). Pra simular a
+                    // altura de estar deitado mesmo com quem testa em
+                    // pé, medimos a altura real atual (mundo) e aplicamos
+                    // um deslocamento em Y no rig pra compensar — assim
+                    // a altura final bate com a pose alvo seja qual for
+                    // a altura de quem estiver com o headset.
+                    const realWorldPos = new THREE.Vector3();
+                    this.camera.getWorldPosition(realWorldPos);
+                    const offsetY = pose.position.y - realWorldPos.y;
+                    this.xrRig.position.set(pose.position.x, offsetY, pose.position.z);
+                    this.notificationSystem.show('DEBUG: CÂMERA DE DESPERTAR — VR (F7 de novo pra sair)');
+                } else {
+                    this.camera.position.copy(pose.position);
+                    this.camera.rotation.set(pose.pitch, pose.yaw, 0, 'YXZ');
+                    this.notificationSystem.show('DEBUG: CÂMERA DE DESPERTAR (F7 de novo pra sair)');
+                }
+            } else {
+                if (inXR) {
+                    this.xrRig.position.set(this.level.spawnPoint.x, 0, this.level.spawnPoint.z);
+                }
+                this.player.spawnAt(this.level.spawnPoint.x, this.level.spawnPoint.z);
+                this.notificationSystem.show('DEBUG: controle normal');
+            }
+        });
+        this.input.onKeyPress('F8', () => {
+            // DEBUG: roda a sequência de despertar inteira (fade, hold,
+            // respiração, clareamento) sem precisar terminar o jogo.
+            this.notificationSystem.show('DEBUG: SEQUÊNCIA DE DESPERTAR (F8)');
+            this.playWakeSequence();
         });
         document.getElementById('item-phone')?.addEventListener('click', () => this.togglePhone());
         this.ui = new UIManager({
@@ -764,6 +830,135 @@ export class Game {
         this.resetFog();
     }
 
+    // -------------------------------------------------------------
+    // Fade-pra-preto compatível com VR de verdade. O overlay 2D normal
+    // (this.ui.fadeIn/fadeOut) é um <div> de HTML — não aparece dentro
+    // do headset. Esta é uma esfera preta presa na própria câmera (por
+    // dentro da cena 3D), então ela renderiza corretamente nos dois
+    // olhos em VR e também no modo desktop normal.
+    // -------------------------------------------------------------
+    ensureWakeFadeOverlay() {
+        if (this._wakeFadeMesh) return this._wakeFadeMesh;
+        const geo = new THREE.SphereGeometry(0.6, 12, 8);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            side: THREE.BackSide,
+            transparent: true,
+            opacity: 0,
+            depthTest: false,
+            depthWrite: false,
+            fog: false
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.renderOrder = 9999; // desenha por cima de tudo, sempre
+        mesh.frustumCulled = false;
+        mesh.visible = false;
+        this.camera.add(mesh); // segue a câmera automaticamente (desktop e VR)
+        this._wakeFadeMesh = mesh;
+        return mesh;
+    }
+
+    vrFadeTo(targetOpacity, durationMs) {
+        const mesh = this.ensureWakeFadeOverlay();
+        mesh.visible = true;
+        const startOpacity = mesh.material.opacity;
+        return new Promise((resolve) => {
+            const start = performance.now();
+            const step = (now) => {
+                const t = Math.min(1, (now - start) / durationMs);
+                mesh.material.opacity = startOpacity + (targetOpacity - startOpacity) * t;
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    mesh.visible = mesh.material.opacity > 0.001;
+                    resolve();
+                }
+            };
+            requestAnimationFrame(step);
+        });
+    }
+
+    // Anima setWakeHaze(1 → 0) no nível atual ao longo de durationMs.
+    animateWakeHazeClear(durationMs) {
+        return new Promise((resolve) => {
+            const start = performance.now();
+            const step = (now) => {
+                const t = Math.min(1, (now - start) / durationMs);
+                const eased = 1 - Math.pow(1 - t, 3); // ease-out cúbico
+                this.level?.setWakeHaze?.(1 - eased);
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    this.level?.clearWakeHaze?.();
+                    resolve();
+                }
+            };
+            requestAnimationFrame(step);
+        });
+    }
+
+    // -------------------------------------------------------------
+    // Sequência de despertar (chamada ao concluir a última fase).
+    // Passos 1-10 do pedido: preto → segura → respiração → clareia
+    // gradual + turvo→nítido → cabeça livre (VR) → sem movimento do
+    // corpo → libera controle no final.
+    // -------------------------------------------------------------
+    async playWakeSequence() {
+        const HOLD_BLACK_MS = 1400;
+        const CLEAR_DURATION_MS = 4200;
+
+        // 1) fade suave pro preto (funciona em VR — ver ensureWakeFadeOverlay)
+        await this.vrFadeTo(1, 900);
+
+        // 2) segura preto por um instante
+        await new Promise((resolve) => setTimeout(resolve, HOLD_BLACK_MS));
+
+        // Troca de cena pro quarto — ainda no preto, jogador não vê a troca
+        if (this.level?.group) this.scene.remove(this.level.group);
+        this.level = new RealRoom(this.scene);
+        this.interactionSystem.interactables = [];
+        this.interactionSystem.currentTarget = null;
+        this.hud.setPrompt(null);
+        if (this.entityManager) { this.entityManager.dispose(); this.entityManager = null; }
+        this.player.movement.collisionWorld = this.level;
+
+        const pose = this.level.getWakeCameraPose();
+        const inXR = this.renderer.xr.isPresenting;
+        if (inXR) {
+            // VR: rotação sempre vem do sensor real do headset — só
+            // posicionamos a origem (xrRig), com deslocamento de altura
+            // pra simular estar deitado seja qual for a altura real de
+            // quem estiver testando.
+            const realWorldPos = new THREE.Vector3();
+            this.camera.getWorldPosition(realWorldPos);
+            const offsetY = pose.position.y - realWorldPos.y;
+            this.xrRig.position.set(pose.position.x, offsetY, pose.position.z);
+        } else {
+            this.camera.position.copy(pose.position);
+            this.camera.rotation.set(pose.pitch, pose.yaw, 0, 'YXZ');
+        }
+
+        // 9) bloqueia movimento corporal — a rotação da cabeça (VR) nunca
+        // é tocada aqui, continua 100% livre o tempo todo.
+        this._wakeSequenceActive = true;
+
+        // 3) respiração sutil
+        try { this.audio.playWakeBreath(); } catch {}
+
+        // turvo máximo antes de clarear
+        this.level.setWakeHaze(1);
+
+        // 4-6) revela a imagem do preto E clareia a névoa/luz ao mesmo
+        // tempo, em paralelo — "abrir os olhos" e "focar a visão" juntos.
+        await Promise.all([
+            this.vrFadeTo(0, CLEAR_DURATION_MS),
+            this.animateWakeHazeClear(CLEAR_DURATION_MS)
+        ]);
+
+        // 10) libera o controle do jogador de volta
+        this._wakeSequenceActive = false;
+    }
+
     async completePortalRun() {
         if (this.gameState.state === 'GAMEOVER' || this.gameState.state === 'COMPLETED') {
             return;
@@ -775,7 +970,8 @@ export class Game {
         this.input.clearActions();
         document.exitPointerLock();
 
-        await this.ui.fadeIn(900);
+        await this.playWakeSequence();
+
         this.hud.hide();
         this.ui.fadeOut(500);
         await this.endScreen.showLevelIntro(
@@ -818,6 +1014,15 @@ export class Game {
         document.getElementById('go-score').textContent = String(this.gameState.score).padStart(3, '0');
         document.getElementById('game-over-screen').classList.remove('hidden');
         this.ui.fadeOut(300);
+
+        this.repository.saveResult({
+            playerName: this.gameState.playerName,
+            score: this.gameState.score,
+            duration: Math.round(this.gameState.elapsedSeconds),
+            completedAt: new Date().toISOString(),
+            levelName: CONFIG.levels.names[this.levelIndex] ?? 'CHÃO 0',
+            completed: false
+        });
     }
 
     requestPointerLock() {
@@ -944,8 +1149,10 @@ export class Game {
             this.gameState.elapsedSeconds += delta;
             this.input.updateXR(delta);
             try {
-                this.player.update(delta, !this.nokiaPhone?.isOpen);
-                this.level.setPlayerPosition(this.player.getPosition());
+                if (!this._wakeCameraTest && !this._wakeSequenceActive) {
+                    this.player.update(delta, !this.nokiaPhone?.isOpen);
+                    this.level.setPlayerPosition(this.player.getPosition());
+                }
             } catch (err) {
                 console.warn('[Game] player.update falhou', err);
             }

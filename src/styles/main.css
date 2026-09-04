@@ -125,6 +125,15 @@ body {
     background: rgba(216, 194, 106, 0.06);
 }
 
+/* Foco visível por teclado (RNF10 — acessibilidade básica).
+   :focus-visible só aparece pra navegação por Tab, não pra clique de
+   mouse, então não polui o visual de quem está jogando normalmente. */
+.btn:focus-visible,
+#player-name-input:focus-visible {
+    outline: 2px solid var(--yellow);
+    outline-offset: 3px;
+}
+
 .btn--secondary {
     border-color: #4a4636;
     color: var(--text-dim);
@@ -1099,4 +1108,30 @@ body {
     .real-world-content .end-stats { font-size: 0.78rem; }
     #nokia-phone { right: 50%; transform: translateX(50%); bottom: 0.8rem; }
     .nokia-shell { width: 86vw; max-width: 320px; }
+
+    /* Menu, modais e HUD — sem adaptação nenhuma antes disso (RNF03) */
+    .modal-box {
+        padding: 1.6rem 1.4rem;
+        width: min(92vw, 26rem);
+        max-height: 85vh;
+        overflow-y: auto;
+        gap: 0.9rem;
+    }
+    .objective-text { font-size: 0.82rem; max-width: 100%; }
+    .controls-list { font-size: 0.85rem; }
+    .subtitle { font-size: 0.7rem; letter-spacing: 0.2em; text-indent: 0.2em; }
+
+    #hud-objectives { top: 0.8rem; left: 0.9rem; }
+    .hud-label { font-size: 0.58rem; }
+    .hud-goal { font-size: 0.75rem; }
+    #minimap-canvas { width: 120px; height: 94px; }
+    .checkpoint-progress { font-size: 0.7rem; }
 }
+
+/* Telas bem pequenas (celular em pé) — modal precisa de ainda mais folga */
+@media (max-width: 420px) {
+    .modal-box { padding: 1.2rem 1rem; width: 94vw; }
+    .title { letter-spacing: 0.25em; text-indent: 0.25em; }
+    .menu-buttons .btn { font-size: 0.85rem; padding: 0.7rem 1rem; }
+}
+

@@ -341,6 +341,42 @@ export class AudioManager {
     startDistantEvents() {}
     startPipeKnocks() {}
 
+    // Respiração calma, sutil — usada na cena de despertar (mundo real).
+    // Diferente de startEntityBreath() (que é tensa/ameaçadora, ligada à
+    // proximidade da entidade): aqui é só uma inspirada+expirada suave,
+    // uma vez, baixo volume, sem repetição automática.
+    playWakeBreath() {
+        if (!this.enabled || !this.context) return;
+        const ctx = this.context;
+        const now = ctx.currentTime;
+
+        const bufferSize = Math.floor(ctx.sampleRate * 2.6);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 420;
+
+        const gain = ctx.createGain();
+        // envelope suave: sobe (inspira), desce (expira), bem discreto
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.05, now + 0.9);
+        gain.gain.linearRampToValueAtTime(0.02, now + 1.5);
+        gain.gain.linearRampToValueAtTime(0, now + 2.6);
+
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.master);
+        source.start(now);
+        source.stop(now + 2.6);
+    }
+
     startEntityBreath() {
         const ctx = this.context;
         const osc = ctx.createOscillator();

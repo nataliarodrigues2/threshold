@@ -39,6 +39,13 @@ export class MainMenu {
                 document.getElementById('btn-enter-game').click();
             }
         });
+
+        // Esc fecha o modal de instruções (padrão esperado de acessibilidade)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape' && !this.instructionsModal.classList.contains('hidden')) {
+                this.hideModal(this.instructionsModal);
+            }
+        });
     }
 
     showModal(modal) {
