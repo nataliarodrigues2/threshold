@@ -1,4 +1,5 @@
 import { eventBus } from '../core/EventBus.js';
+import { CONFIG } from '../core/Config.js';
 import { Minimap } from './Minimap.js';
 
 export class HUD {
@@ -9,6 +10,14 @@ export class HUD {
 
         this.levelElement = document.getElementById('hud-level');
         this.levelName = document.getElementById('hud-level-name');
+        // checkpoint indicator (created dynamically if not present in DOM)
+        this.checkpointElement = document.getElementById('hud-checkpoint');
+        if (!this.checkpointElement && this.levelElement) {
+            this.checkpointElement = document.createElement('p');
+            this.checkpointElement.id = 'hud-checkpoint';
+            this.checkpointElement.className = 'hud-checkpoint';
+            this.levelElement.appendChild(this.checkpointElement);
+        }
 
         this.radarItem = document.getElementById('item-radar');
         this.phoneItem = document.getElementById('item-phone');
@@ -47,6 +56,11 @@ export class HUD {
             this.renderObjectives(objectives);
             this.renderLegend();
         });
+        eventBus.on('inventory:changed', () => {
+            // re-render required items display when inventory changes
+            this.renderRequiredItems();
+            if (this.minimap) this.minimap.update(this._lastPlayerPos, this._lastYaw);
+        });
         eventBus.on('score:changed', (score) => this.setScore(score));
         eventBus.on('portal:unlocked', () => {
             this._portalUnlocked = true;
@@ -66,6 +80,29 @@ export class HUD {
 
         this.renderObjectives(this.lastObjectives);
         this.renderLegend();
+    }
+
+    setRequiredItems(list, gameState) {
+        this._requiredItems = list || [];
+        this._requiredGameState = gameState;
+        this.renderRequiredItems();
+    }
+
+    renderRequiredItems() {
+        if (!this._requiredItems || !this.checkpointElement) return;
+        // show as "REQUERe: ITEM (✓)" where ✓ shows collected
+        const parts = this._requiredItems.map((id) => {
+            const label = id === 'phone' ? 'CELULAR' : id === 'radar' ? 'RADAR' : id === 'flashlight' ? 'LANTERNA' : id.toUpperCase();
+            const collected = this._requiredGameState?.hasItem ? this._requiredGameState.hasItem(id) : false;
+            return `${label}${collected ? ' ✓' : ''}`;
+        });
+        if (parts.length === 0) {
+            this.checkpointElement.textContent = '';
+            this.checkpointElement.classList.add('hidden');
+            return;
+        }
+        this.checkpointElement.textContent = `REQUIRED: ${parts.join(' + ')}`;
+        this.checkpointElement.classList.remove('hidden');
     }
 
     renderObjectives(objectives) {
@@ -154,6 +191,14 @@ export class HUD {
             if (name) this.levelElement.classList.remove('hidden');
             else this.levelElement.classList.add('hidden');
         }
+    }
+
+    setCheckpoint(levelIndex) {
+        if (!this.checkpointElement) return;
+        const names = CONFIG.levels.names || [];
+        const label = names[levelIndex] ?? `CHÃO ${levelIndex}`;
+        this.checkpointElement.textContent = `CHECKPOINT: ${label}`;
+        this.checkpointElement.classList.remove('hidden');
     }
 
     setRadarEnabled(enabled) {

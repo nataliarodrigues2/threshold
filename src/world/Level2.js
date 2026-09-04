@@ -101,6 +101,9 @@ export class Level2 extends Level {
             { id: 'fragment', title: 'Coletar o FRAGMENTO' },
             { id: 'stabilize', title: 'Estabilizar o DISPOSITIVO' }
         ];
+        if (this.diffConfig.hasFlashlightRequirement) {
+            this.objectives.unshift({ id: 'flashlight', title: 'Encontrar a LANTERNA' });
+        }
 
         this.buildEnvironment();
         this.buildLights();
@@ -289,6 +292,32 @@ export class Level2 extends Level {
     buildGameplay() {
         this.buildFragment();
         this.buildStabilizer();
+        if (this.diffConfig.hasFlashlightRequirement) {
+            const flashlightWorld = this.cellToWorld(15, 1);
+            const flashlight = new PickupItem(this.createFlashlightMesh(), {
+                id: 'flashlight',
+                prompt: '[E] Pegar lanterna'
+            });
+            flashlight.meshes[0].position.set(flashlightWorld.x, 0.9, flashlightWorld.z);
+            flashlight.baseY = 0.9;
+            this.group.add(flashlight.meshes[0]);
+            this.addInteractable(flashlight);
+            this.pickups.push({ item: flashlight, id: 'flashlight' });
+        }
+    }
+
+    createFlashlightMesh() {
+        const group = new THREE.Group();
+        const color = 0xffdd66;
+        const bodyMaterial = new THREE.MeshLambertMaterial({ color, emissive: color });
+        configureRetroMaterial(bodyMaterial);
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.42, 8), bodyMaterial);
+        body.rotation.z = Math.PI / 2;
+        const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.34), new THREE.MeshBasicMaterial({
+            color, transparent: true, opacity: 0.3, side: THREE.DoubleSide
+        }));
+        group.add(body, halo);
+        return group;
     }
 
     buildFragment() {

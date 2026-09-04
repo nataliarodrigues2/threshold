@@ -154,6 +154,31 @@ export class Game {
                 this.player?.controller.turnBy(direction * (Math.PI / 6));
             }
         });
+
+        // Debug hotkeys (F1-F4)
+        this.input.onKeyPress('F1', () => {
+            if (typeof window === 'undefined') return;
+            window.DEBUG_SHOW_GENERATOR_MARKER = !window.DEBUG_SHOW_GENERATOR_MARKER;
+            const marker = this.level?.generator?.meshes?.[0]?.getObjectByName?.('generatorDebugMarker');
+            if (marker) marker.visible = !!window.DEBUG_SHOW_GENERATOR_MARKER;
+            this.notificationSystem.show(`MARCADOR GERADOR ${window.DEBUG_SHOW_GENERATOR_MARKER ? 'ON' : 'OFF'}`);
+        });
+        this.input.onKeyPress('F2', () => {
+            // dar celular
+            this.handlePickup('phone');
+            this.notificationSystem.show('DEBUG: CELULAR ADICIONADO');
+        });
+        this.input.onKeyPress('F3', () => {
+            // dar radar
+            this.handlePickup('radar');
+            this.notificationSystem.show('DEBUG: RADAR ADICIONADO');
+        });
+        this.input.onKeyPress('F4', () => {
+            // dar ambos
+            this.handlePickup('phone');
+            this.handlePickup('radar');
+            this.notificationSystem.show('DEBUG: CELULAR + RADAR ADICIONADOS');
+        });
         document.getElementById('item-phone')?.addEventListener('click', () => this.togglePhone());
         this.ui = new UIManager({
             onUiClick: () => this.audio.sfx('ui'),
@@ -432,6 +457,13 @@ export class Game {
             difficulty: this.difficulty
         });
 
+        // compute required support items for this difficulty and show on HUD
+        const required = [];
+        if (this.diffConfig.hasPhoneRequirement) required.push('phone');
+        if (this.diffConfig.hasRadarRequirement) required.push('radar');
+        if (this.diffConfig.hasFlashlightRequirement) required.push('flashlight');
+        try { this.hud.setRequiredItems(required, this.gameState); } catch {}
+
         this.player = new Player(this.camera, this.input, this.level, {
             xrRig: this.xrRig,
             isXRActive: () => this.renderer.xr.isPresenting
@@ -506,6 +538,12 @@ export class Game {
         this.level.refreshInteractionStates?.();
         if (ITEM_ONLY_IDS.includes(itemId)) {
             this.handleItemPickup(itemId);
+            // se este item também for parte das objectives do nível, marque como completo
+            try {
+                if (this.level && Array.isArray(this.level.objectives) && this.level.objectives.some(o => o.id === itemId)) {
+                    this.objectiveManager.complete(itemId);
+                }
+            } catch {}
         } else {
             this.objectiveManager.complete(itemId);
         }
@@ -862,10 +900,14 @@ export class Game {
         document.getElementById('game-over-screen')?.classList.add('hidden');
         this.ui.hidePause();
         this.notificationSystem.clear();
-        this.gameState.reset();
+        // preserve checkpoint so restart resumes at highest reached level
+        this.gameState.reset(true);
         this.objectiveManager.reset();
         this.hud.reset();
         this.hud.setDifficulty(this.difficulty);
+
+        // show checkpoint in HUD
+        try { this.hud.setCheckpoint(this.gameState.checkpointLevelIndex ?? 0); } catch {}
         this.gameState.setState('PLAYING');
         this._lastPlayStart = performance.now();
         this.hud.show();
@@ -882,7 +924,8 @@ export class Game {
         document.getElementById('game-over-screen')?.classList.add('hidden');
         this.ui.hidePause();
         this.notificationSystem.clear();
-        this.gameState.reset();
+        // keep the highest reached floor when returning to the menu after death
+        this.gameState.reset(true);
         this.objectiveManager.reset();
         this.hud.reset();
         this.hud.setDifficulty(null);

@@ -88,6 +88,24 @@ body {
     margin-top: 2rem;
 }
 
+.checkpoint-progress {
+    margin-top: 0.4rem;
+    min-width: 14rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid var(--yellow-dim);
+    border-bottom: 1px solid var(--yellow-dim);
+    color: var(--yellow);
+    letter-spacing: 0.16em;
+}
+
+.checkpoint-progress .hud-label {
+    margin-bottom: 0.35rem;
+}
+
+#checkpoint-progress-value {
+    font-size: 0.78rem;
+}
+
 .btn {
     font-family: inherit;
     font-size: 1rem;
@@ -537,6 +555,111 @@ body {
     color: var(--text);
 }
 
+.real-world-ending {
+    display: block;
+    overflow: hidden;
+    background: #b9c6c3;
+    color: #26302e;
+}
+
+.real-room {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: linear-gradient(165deg, #dbe5df 0%, #aebdbb 55%, #778b8d 100%);
+}
+
+.real-window {
+    position: absolute;
+    top: 10%;
+    right: 12%;
+    width: min(30vw, 25rem);
+    height: min(43vh, 22rem);
+    background: #f8f1d2;
+    border: 0.8rem solid #5f6d6d;
+    box-shadow: 0 0 5rem rgba(255, 244, 183, 0.8);
+}
+
+.real-window::before,
+.real-window::after {
+    content: '';
+    position: absolute;
+    background: #5f6d6d;
+}
+
+.real-window::before { top: 0; bottom: 0; left: 50%; width: 0.35rem; transform: translateX(-50%); }
+.real-window::after { left: 0; right: 0; top: 50%; height: 0.35rem; transform: translateY(-50%); }
+.real-window span { position: absolute; width: 0.7rem; height: 0.7rem; background: #9fb9bd; border-radius: 50%; opacity: 0.65; }
+.real-window span:first-child { top: 24%; left: 24%; }
+.real-window span:last-child { top: 66%; right: 20%; }
+
+.real-wall-light {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 58%;
+    height: 78%;
+    background: radial-gradient(ellipse at 80% 25%, rgba(255, 244, 183, 0.52), transparent 62%);
+}
+
+.real-bed {
+    position: absolute;
+    left: 8%;
+    bottom: 16%;
+    width: 62%;
+    height: 28%;
+    background: #536b72;
+    border-radius: 1.2rem 1.2rem 0.2rem 0.2rem;
+    box-shadow: 0 1.2rem 0 #35484e;
+}
+
+.real-pillow {
+    position: absolute;
+    left: 5%;
+    top: 10%;
+    width: 24%;
+    height: 35%;
+    background: #d8dfd9;
+    border-radius: 1rem;
+}
+
+.real-blanket {
+    position: absolute;
+    left: 28%;
+    right: 4%;
+    top: 18%;
+    bottom: 0;
+    background: #6e8f96;
+    border-radius: 2rem 1rem 0 0;
+}
+
+.real-person { position: absolute; left: 14%; top: -25%; width: 22%; height: 80%; }
+.real-head { position: absolute; left: 18%; top: 0; width: 42%; aspect-ratio: 1; background: #8c6655; border-radius: 50%; box-shadow: 0.3rem 0.1rem 0 #4c3937; }
+.real-arm { position: absolute; left: 48%; top: 25%; width: 1.1rem; height: 5rem; background: #8c6655; border-radius: 1rem; transform: rotate(-32deg); transform-origin: top; }
+.real-floor { position: absolute; inset: auto 0 0; height: 17%; background: #766b5e; }
+
+.real-world-content {
+    position: relative;
+    z-index: 2;
+    width: min(92vw, 34rem);
+    margin: 8vh 0 0 8vw;
+    text-align: left;
+    animation: wakeIn 1.2s ease-out both;
+}
+
+.real-world-content .end-title { margin: 0.5rem 0 1rem; color: #263a3c; letter-spacing: 0.18em; text-indent: 0.18em; }
+.real-kicker { color: #526e70; font-size: 0.72rem; letter-spacing: 0.26em; }
+.real-world-copy { max-width: 27rem; line-height: 1.7; color: #405456; font-size: 1rem; margin-bottom: 1.6rem; }
+.real-world-content .end-stats { color: #526e70; }
+.real-world-content .end-stats span { color: #263a3c; }
+.real-world-content .btn { color: #263a3c; border-color: #526e70; }
+.real-world-content .btn:hover { background: rgba(255, 255, 255, 0.18); border-color: #263a3c; }
+
+@keyframes wakeIn {
+    from { opacity: 0; transform: translateY(1.2rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .level-intro-title {
     font-weight: normal;
     font-size: 3rem;
@@ -968,6 +1091,12 @@ body {
     100% { opacity: 1; transform: translateY(0); }
 }
 @media (max-width: 700px) {
+    .real-window { top: 7%; right: 7%; width: 38vw; height: 28vh; border-width: 0.45rem; }
+    .real-bed { left: 4%; bottom: 8%; width: 86%; height: 22%; }
+    .real-world-content { margin: 9vh 1.25rem 0; width: auto; }
+    .real-world-content .end-title { font-size: 1.45rem; }
+    .real-world-copy { max-width: 18rem; font-size: 0.82rem; }
+    .real-world-content .end-stats { font-size: 0.78rem; }
     #nokia-phone { right: 50%; transform: translateX(50%); bottom: 0.8rem; }
     .nokia-shell { width: 86vw; max-width: 320px; }
 }

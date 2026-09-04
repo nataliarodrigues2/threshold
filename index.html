@@ -28,6 +28,10 @@
           <button id="btn-start" class="btn">INICIAR</button>
           <button id="btn-instructions" class="btn btn--secondary">INSTRUÇÕES</button>
         </div>
+        <div id="checkpoint-progress" class="checkpoint-progress">
+          <p class="hud-label">PROGRESSO</p>
+          <p id="checkpoint-progress-value">CHECKPOINT: 0 DE 2</p>
+        </div>
         <footer class="menu-footer">
           <p>ADS SENAC JOINVILLE</p>
           <p>Profª Claudia Werlich</p>
@@ -169,14 +173,28 @@
       </div>
 
       <!-- Tela final -->
-      <div id="end-screen" class="screen hidden">
-        <h2 class="end-title">MISSÃO CONCLUÍDA</h2>
-        <div class="end-stats">
-          <p>Jogador: <span id="end-player"></span></p>
-          <p>Pontuação: <span id="end-score"></span></p>
-          <p>Tempo: <span id="end-time"></span></p>
+      <div id="end-screen" class="screen hidden real-world-ending">
+        <div class="real-room" aria-hidden="true">
+          <div class="real-window"><span></span><span></span></div>
+          <div class="real-wall-light"></div>
+          <div class="real-bed">
+            <div class="real-pillow"></div>
+            <div class="real-blanket"></div>
+            <div class="real-person"><span class="real-head"></span><span class="real-arm"></span></div>
+          </div>
+          <div class="real-floor"></div>
         </div>
-        <button id="btn-restart" class="btn">JOGAR NOVAMENTE</button>
+        <div class="real-world-content">
+          <p class="real-kicker">DE VOLTA À REALIDADE</p>
+          <h2 class="end-title">VOCÊ ACORDA</h2>
+          <p class="real-world-copy">A luz atravessa a janela. Você abre os olhos, mas ainda sente o chão impossível sob os pés.</p>
+          <div class="end-stats">
+            <p>Jogador: <span id="end-player"></span></p>
+            <p>Pontuação: <span id="end-score"></span></p>
+            <p>Tempo: <span id="end-time"></span></p>
+          </div>
+          <button id="btn-restart" class="btn">JOGAR NOVAMENTE</button>
+        </div>
       </div>
 
       <!-- Tela de fim de jogo (captura) - chuvisco Slenderman -->

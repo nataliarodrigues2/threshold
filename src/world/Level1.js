@@ -99,6 +99,14 @@ export class Level1 extends Level {
             { id: 'generator', title: 'Ativar o GERADOR' }
         ];
 
+        // adicionar itens de suporte como objetivos quando exigidos pela dificuldade
+        if (this.diffConfig.hasPhoneRequirement) {
+            this.objectives.unshift({ id: 'phone', title: 'Encontrar o CELULAR' });
+        }
+        if (this.diffConfig.hasRadarRequirement) {
+            this.objectives.unshift({ id: 'radar', title: 'Encontrar o RADAR' });
+        }
+
         this.buildEnvironment();
         this.buildLights();
         this.buildPortalStructure();
@@ -287,6 +295,28 @@ export class Level1 extends Level {
         this.buildPart('A', 'partA', '[E] Pegar peça A');
         this.buildPart('B', 'partB', '[E] Pegar peça B');
         this.buildGenerator();
+
+        // colocar celular no CHÃO 1 quando a dificuldade exigir
+        if (this.diffConfig.hasPhoneRequirement) {
+            // celular em uma célula aberta próxima ao spawn
+            const phoneWorld = this.cellToWorld(3, 1);
+            const phoneMesh = this.createPhoneMesh();
+            const phone = new PickupItem(phoneMesh, { id: 'phone', prompt: '[E] Pegar celular' });
+            phone.meshes[0].position.set(phoneWorld.x, 0.9, phoneWorld.z);
+            phone.baseY = 0.9;
+            this.group.add(phone.meshes[0]);
+            this.addInteractable(phone);
+            this.pickups.push({ item: phone, id: 'phone' });
+        }
+        if (this.diffConfig.hasRadarRequirement) {
+            const radarWorld = this.cellToWorld(7, 1);
+            const radar = new PickupItem(this.createRadarMesh(), { id: 'radar', prompt: '[E] Pegar radar' });
+            radar.meshes[0].position.set(radarWorld.x, 0.9, radarWorld.z);
+            radar.baseY = 0.9;
+            this.group.add(radar.meshes[0]);
+            this.addInteractable(radar);
+            this.pickups.push({ item: radar, id: 'radar' });
+        }
     }
 
     buildPart(glyph, id, prompt) {
@@ -326,6 +356,33 @@ export class Level1 extends Level {
         return group;
     }
 
+    createPhoneMesh() {
+        const group = new THREE.Group();
+        const color = 0x66ccff;
+        const placeholderMat = new THREE.MeshLambertMaterial({ color, emissive: color });
+        configureRetroMaterial(placeholderMat);
+        const placeholder = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.18), placeholderMat);
+        group.add(placeholder);
+        const haloMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthTest: true, depthWrite: false });
+        const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.34), haloMat);
+        group.add(halo);
+        return group;
+    }
+
+    createRadarMesh() {
+        const group = new THREE.Group();
+        const color = 0x44ffaa;
+        const material = new THREE.MeshLambertMaterial({ color, emissive: color });
+        configureRetroMaterial(material);
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.06, 8), material);
+        core.rotation.x = Math.PI / 2;
+        const halo = new THREE.Mesh(new THREE.OctahedronGeometry(0.34), new THREE.MeshBasicMaterial({
+            color, transparent: true, opacity: 0.3, side: THREE.DoubleSide
+        }));
+        group.add(core, halo);
+        return group;
+    }
+
     buildGenerator() {
         const cell = this.findCell('G');
         const world = this.cellToWorld(cell.col, cell.row);
@@ -355,7 +412,17 @@ export class Level1 extends Level {
         );
         indicator.position.set(0.55, 1.25, 0.45);
 
+        // marcador de debug para localizar o gerador em runtime
+        const markerMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const marker = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), markerMat);
+        marker.position.set(0, 1.8, 0);
+        marker.name = 'generatorDebugMarker';
+        marker.visible = (typeof window !== 'undefined') ? !!window.DEBUG_SHOW_GENERATOR_MARKER : false;
+        group.add(marker);
+
         group.add(base, drum, indicator);
+        // posiciona o grupo do gerador na célula do mapa
+        group.position.set(world.x, 0, world.z);
         this.group.add(group);
 
         this.generator = new Generator({

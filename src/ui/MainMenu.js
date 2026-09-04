@@ -4,7 +4,9 @@ export class MainMenu {
         this.nameModal = document.getElementById('name-modal');
         this.instructionsModal = document.getElementById('instructions-modal');
         this.nameInput = document.getElementById('player-name-input');
+        this.checkpointProgress = document.getElementById('checkpoint-progress-value');
         this.callbacks = callbacks;
+        this.updateCheckpointProgress();
 
         document.getElementById('btn-start')?.addEventListener('click', () => {
             callbacks.onUiClick();
@@ -54,6 +56,17 @@ export class MainMenu {
     }
 
     show() {
+        this.updateCheckpointProgress();
         this.root.classList.remove('hidden');
+    }
+
+    updateCheckpointProgress() {
+        if (!this.checkpointProgress) return;
+        let checkpoint = 0;
+        try {
+            const saved = parseInt(localStorage.getItem('threshold_checkpointLevel'), 10);
+            if (Number.isFinite(saved)) checkpoint = Math.max(0, Math.min(2, saved));
+        } catch {}
+        this.checkpointProgress.textContent = `CHECKPOINT: ${checkpoint} DE 2`;
     }
 }

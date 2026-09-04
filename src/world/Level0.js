@@ -53,6 +53,16 @@ export class Level0 extends Level {
         this.portal = null;
         this.guideMarkers = [];
         this.ambientEventTimer = 0;
+        // objetivos padrão do nível 0
+        this.objectives = [
+            { id: 'fuse', title: 'Encontrar o FUSÍVEL' },
+            { id: 'keycard', title: 'Encontrar o CARTÃO' },
+            { id: 'power', title: 'Restaurar a ENERGIA' }
+        ];
+        // adicionar itens de suporte como objetivos quando exigidos
+        if (this.diffConfig.hasRadarRequirement) this.objectives.unshift({ id: 'radar', title: 'Encontrar o RADAR' });
+        if (this.diffConfig.hasPhoneRequirement) this.objectives.unshift({ id: 'phone', title: 'Encontrar o CELULAR' });
+        if (this.diffConfig.hasFlashlightRequirement) this.objectives.unshift({ id: 'flashlight', title: 'Encontrar a LANTERNA' });
 
         this.buildEnvironment();
         this.buildLights();
@@ -414,15 +424,9 @@ export class Level0 extends Level {
 
     buildSupportItems() {
         const items = [];
-        if (this.difficulty === 'normal') {
+        if (this.difficulty === 'hard') {
             items.push(
-                { glyph: SUPPORT_ITEM_CELLS.radar, id: 'radar', prompt: '[E] Pegar radar', color: 0x44ffaa },
-                { glyph: SUPPORT_ITEM_CELLS.phone, id: 'phone', prompt: '[E] Pegar celular', color: 0x66ccff }
-            );
-        } else if (this.difficulty === 'hard') {
-            items.push(
-                { glyph: SUPPORT_ITEM_CELLS.flashlight, id: 'flashlight', prompt: '[E] Pegar lanterna', color: 0xffdd66 },
-                { glyph: SUPPORT_ITEM_CELLS.phone, id: 'phone', prompt: '[E] Pegar celular', color: 0x66ccff }
+                { glyph: SUPPORT_ITEM_CELLS.flashlight, id: 'flashlight', prompt: '[E] Pegar lanterna', color: 0xffdd66 }
             );
         }
 

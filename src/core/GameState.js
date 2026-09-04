@@ -2,10 +2,18 @@ import { eventBus } from './EventBus.js';
 
 export class GameState {
     constructor() {
-        this.reset();
+        this._CHECKPOINT_KEY = 'threshold_checkpointLevel';
+        this.checkpointLevelIndex = this._loadCheckpoint();
+        this.reset(true);
     }
 
-    reset() {
+    
+
+    // resetando o estado do jogo. Se keepCheckpoint for true, preserva o
+    // checkpoint de nível (máxima progressão) e define o nível atual para
+    // esse checkpoint; caso contrário limpa tudo como antes.
+    reset(keepCheckpoint = false) {
+        const checkpoint = this.checkpointLevelIndex ?? 0;
         this.playerName = '';
         this.score = 0;
         this.objectives = {
@@ -25,8 +33,30 @@ export class GameState {
         this.gameCompleted = false;
         this.elapsedSeconds = 0;
         this.state = 'MENU';
-        this.currentLevelIndex = 0;
+        this.currentLevelIndex = keepCheckpoint ? checkpoint : 0;
         this.levelObjectiveIds = [];
+        if (!keepCheckpoint) {
+            this.checkpointLevelIndex = 0;
+            try { if (typeof localStorage !== 'undefined') localStorage.removeItem(this._CHECKPOINT_KEY); } catch {}
+        }
+    }
+
+    _loadCheckpoint() {
+        try {
+            if (typeof localStorage === 'undefined') return 0;
+            const raw = localStorage.getItem(this._CHECKPOINT_KEY);
+            const v = parseInt(raw, 10);
+            return Number.isFinite(v) ? v : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    _saveCheckpoint() {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            localStorage.setItem(this._CHECKPOINT_KEY, String(this.checkpointLevelIndex ?? 0));
+        } catch {}
     }
 
     setState(state) {
@@ -90,6 +120,9 @@ export class GameState {
         this.currentLevelIndex++;
         this.portalUnlocked = false;
         eventBus.emit('portal:locked');
+        // atualiza checkpoint para o nível atual (permite reiniciar direto daqui)
+        this.checkpointLevelIndex = this.currentLevelIndex;
+        this._saveCheckpoint();
     }
 
     unlockPortal() {
